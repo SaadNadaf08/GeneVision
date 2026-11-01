@@ -1,0 +1,12 @@
+import { spawn } from 'node:child_process';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const server = spawn(process.execPath, [path.join(root, 'server/index.js')], { cwd:root, stdio:'inherit', env:process.env });
+let vite;
+const shutdown = () => { server.kill('SIGTERM'); vite?.kill('SIGTERM'); };
+process.on('SIGINT', shutdown); process.on('SIGTERM', shutdown);
+server.once('exit', code => { if (code && code !== 0) { vite?.kill('SIGTERM'); process.exit(code); } });
+await new Promise(resolve => setTimeout(resolve, 500));
+vite = spawn(process.execPath, [path.join(root, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1'], { cwd:root, stdio:'inherit', env:process.env });
+vite.once('exit', code => { server.kill('SIGTERM'); process.exit(code || 0); });
